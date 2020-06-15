@@ -2,5 +2,7 @@
 
 void Swap(char *left, char *right)
 {
-	// ваш код здесь
+	char time = *left;
+	*left = *right;
+	*right = time;
 }

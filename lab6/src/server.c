@@ -14,35 +14,24 @@
 #include "pthread.h"
 
 struct FactorialArgs {
-  uint64_t begin;
-  uint64_t end;
+  uint64_t begin_num;
+  uint64_t end_num;
   uint64_t mod;
 };
 
-uint64_t MultModulo(uint64_t a, uint64_t b, uint64_t mod) {
-  uint64_t result = 0;
-  a = a % mod;
-  while (b > 0) {
-    if (b % 2 == 1)
-      result = (result + a) % mod;
-    a = (a * 2) % mod;
-    b /= 2;
+uint64_t Factorial(const struct FactorialArgs *arg) {
+  uint64_t calk = 1;
+  for(int i = arg->begin_num; i < arg->end_num; i++){
+    calk *= i;
+    calk %= arg->mod;
+    //printf("From %d %d: %lld\n", arg->begin_num, arg->end_num, calk);
   }
-
-  return result % mod;
+  return calk;
 }
 
-uint64_t Factorial(const struct FactorialArgs *args) {
-  uint64_t ans = 1;
-
-  // TODO: your code here
-
-  return ans;
-}
-
-void *ThreadFactorial(void *args) {
-  struct FactorialArgs *fargs = (struct FactorialArgs *)args;
-  return (void *)(uint64_t *)Factorial(fargs);
+void *ThreadFactorial(void *arg) {
+  struct FactorialArgs *fact_arg = (struct FactorialArgs *)arg;
+  return (void *)(uint64_t *)Factorial(fact_arg);
 }
 
 int main(int argc, char **argv) {
@@ -156,11 +145,26 @@ int main(int argc, char **argv) {
 
       fprintf(stdout, "Receive: %llu %llu %llu\n", begin, end, mod);
 
+      //let end be 15(17) and begin be 2(2)
+      //then range be 13(15)
+      //which means if tnum be 3(3) part_size be 4(5)
+      //then we'l calculate 2-6(2-7), 6-10(7-12), 10-15(12-17) parts
+      //2(2) and 15(17) should be included in calculations
+      uint64_t range = end - begin;
       struct FactorialArgs args[tnum];
+      uint64_t part_size = range/tnum;
+      args[0].begin_num = begin;
+      args[tnum-1].end_num = end + 1; //plus 1 cause calc goes from i to j-1
+      for(int i = 0; i < tnum - 1; i++)
+      {
+        args[i].end_num = args[i].begin_num + part_size;
+        if (i+1 < tnum)
+        {
+          args[i+1].begin_num = args[i].end_num;
+        }
+      }
+
       for (uint32_t i = 0; i < tnum; i++) {
-        // TODO: parallel somehow
-        args[i].begin = 1;
-        args[i].end = 1;
         args[i].mod = mod;
 
         if (pthread_create(&threads[i], NULL, ThreadFactorial,
@@ -174,7 +178,8 @@ int main(int argc, char **argv) {
       for (uint32_t i = 0; i < tnum; i++) {
         uint64_t result = 0;
         pthread_join(threads[i], (void **)&result);
-        total = MultModulo(total, result, mod);
+        total *= result;
+        total %= mod;
       }
 
       printf("Total: %llu\n", total);

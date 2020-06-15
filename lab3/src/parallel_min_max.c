@@ -91,50 +91,137 @@ int main(int argc, char **argv) {
   struct timeval start_time;
   gettimeofday(&start_time, NULL);
 
+  int** pipes_max = malloc(sizeof(int*) * pnum);
+  int** pipes_min = malloc(sizeof(int*) * pnum);
+
   for (int i = 0; i < pnum; i++) {
+      //init pipe
+      int p_max[2];
+      int p_min[2];
+      //check if pipe fail
+      if (pipe(p_max) == -1){
+        printf("Pipe Failed");
+        return 1;
+      }
+      if (pipe(p_min) == -1){
+        printf("Pipe Failed");
+        return 1;
+      }
+      pipes_max[i] = p_max;
+      pipes_min[i] = p_min;
+  }
+
+  int arr_part_size = array_size/pnum;
+  int arr_parts[pnum];
+  int pointer = 0;
+  //let pnum be 3 and arr size is 20
+  //part size be 6
+  //fill parts with 0 6 12
+  arr_parts[0] = 0;
+  for(int i = 1; i < pnum; i++){
+    arr_parts[i] = arr_parts[i-1] + arr_part_size;
+  }
+
+  FILE* f;
+  f = fopen("buff", "w");
+
+  for (int i = 0; i < pnum; i++) {
+    //pid is > 0 for main process and 0 for child
     pid_t child_pid = fork();
+
     if (child_pid >= 0) {
       // successful fork
       active_child_processes += 1;
       if (child_pid == 0) {
-        // child process
+        // child process - parallel code here
+        
+        int max = INT_MIN;
+        int min = INT_MAX;
 
-        // parallel somehow
+        //find min/max
+        //every thread calculate its own part of array
+        //if arr have odd size give rest of it to procs_num-1 proc
+        if(i != pnum-1){
+          for(int j = arr_parts[i]; j < arr_parts[i+1]; j++){
+            if(max < array[j]){
+              max = array[j];
+            }
+            if(min > array[j]){
+              min = array[j];
+            }
+          }
+        }
+        else{
+          for(int j = arr_parts[i]; j < array_size; j++){
+            if(max < array[j]){
+              max = array[j];
+            }
+            if(min > array[j]){
+              min = array[j];
+            }
+          }
+        }
 
         if (with_files) {
-          // use files here
+          char name[6];
+          name[0] = 'b'; name[1] = 'u';
+          name[2] = 'f'; name[3] = 'f';
+          name[4] = i + '0'; name[5] = '\0';
+
+          fprintf(f,"%d %d ", max, min);
+          fclose(f);
         } else {
-          // use pipe here
+          close(pipes_max[i][0]);
+          close(pipes_min[i][0]);
+
+          //write min/max
+          write(pipes_min[i][1], &min, sizeof(int));
+          write(pipes_max[i][1], &max, sizeof(int));
+
+          close(pipes_max[i][1]);
+          close(pipes_min[i][1]);
+
+          //check if min max pass right, please
         }
         return 0;
       }
-
-    } else {
+    }
+    else {
       printf("Fork failed!\n");
       return 1;
     }
   }
 
+  //why this block is there?
   while (active_child_processes > 0) {
-    // your code here
-
     active_child_processes -= 1;
   }
 
+  //output of programm
   struct MinMax min_max;
   min_max.min = INT_MAX;
   min_max.max = INT_MIN;
 
+  f = fopen("buff", "r");
   for (int i = 0; i < pnum; i++) {
-    int min = INT_MAX;
     int max = INT_MIN;
+    int min = INT_MAX;
 
+    //there we set our min/max nums
     if (with_files) {
-      // read from files
-    } else {
-      // read from pipes
+      while(wait(NULL)>0);
+      fscanf(f, "%d", &max);
+      fscanf(f, "%d", &min);
+    }
+    else {
+      close(pipes_max[i][1]);
+      close(pipes_min[i][1]);
+
+      read(pipes_max[i][0],&max,sizeof(int));
+      read(pipes_min[i][0],&min,sizeof(int));
     }
 
+    //there we fill the struture of min/max nums
     if (min < min_max.min) min_max.min = min;
     if (max > min_max.max) min_max.max = max;
   }

@@ -1,0 +1,5 @@
+#will wait for 1 second and then break
+./parallel_min_max --seed 4 --array_size 10 --pnum 4 --timeout 1
+
+#will no wait
+./parallel_min_max --seed 4 --array_size 10 --pnum 4 --timeout 0

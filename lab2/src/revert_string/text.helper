@@ -1,0 +1,10 @@
+gcc -shared obj.o -o lib.so #make a shared lib
+ar cr lib.a obj.o #to make static lib
+
+export LD_LIBRARY_PATH=/home... #to add shared lib directory
+
+gcc main.o -Lpath -llib #main.o should be situated left from added library
+
+#shared and static libs compile exactly the same way with gcc
+#the difference is that shared lib could be situated anywhere
+#also obj.o should be compiled with -fPIC flag for the shared lib

@@ -1,0 +1,13 @@
+count_summ.sh       gets indefinite amount of
+                    integers and count it count_summ
+
+get_rnd_nums.sh     gets one integer argument and
+                    generate amount of random numbers
+
+cat numbers.txt | xargs ./higher.sh
+    doing the main trick
+    use this to push arguments
+    from file to script
+
+echo $PATH - to show current path variable
+export PATH=$PATH:/home/evgeniy/os_lab_2019/lab1/src - to add folder to path variable
