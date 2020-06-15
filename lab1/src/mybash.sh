@@ -1,7 +1,4 @@
-#!/bin/bash
+#!/bin/sh
 
-dt=$(date '+%d/%m/%Y %H:%M:%S');
-echo "Current date is:"
-echo "$dt"
-echo "PATH variable is:"
-echo $($PATH)
+echo $(date '+%d/%m/%Y %H:%M:%S')
+echo $PATH
