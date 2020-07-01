@@ -28,18 +28,10 @@ struct SumArgs {
   int end;
 };
 
-void GenerateArray(int *array, unsigned int array_size, unsigned int seed) {
-  srand(seed);
-  for (int i = 0; i < array_size; i++) {
-    array[i] = rand() % 101;
-  }
-}
-
 int Sum(const struct SumArgs *arg) {
   int sum = 0;
-  for(int i = arg->begin; i < arg->end; i++){
+  for(int i = arg->begin; i < arg->end; i++)
     sum += arg->array[i];
-  }
   return sum;
 }
 
@@ -49,9 +41,9 @@ void *ThreadSum(void *arg) {
 }
 
 int main(int argc, char **argv) {
-  uint32_t threads_num = -1;
-  uint32_t array_size = -1;
-  uint32_t seed = -1;
+  uint32_t threads_num = 0;
+  uint32_t array_size = 0;
+  uint32_t seed = 0;
 
   while (true) {
     int current_optind = optind ? optind : 1;
@@ -72,12 +64,27 @@ int main(int argc, char **argv) {
         {
           case 0:
             threads_num = atoi(optarg);
+            if(threads_num <= 0)
+            {
+              printf("threads_num should be positive");
+              return 1;
+            }
             break;
           case 1:
             array_size = atoi(optarg);
+            if(array_size <= 0)
+            {
+              printf("array_size should be positive");
+              return 1;
+            }
             break;
           case 2:
             seed = atoi(optarg);
+            if(seed <= 0)
+            {
+              printf("seed should be positive");
+              return 1;
+            }
             break;
 
           defalut:
@@ -94,38 +101,33 @@ int main(int argc, char **argv) {
     printf("Has at least one no option argument\n");
     return 1;
   }
-  if (seed == -1 || array_size == -1 || threads_num == -1) {
+  if (seed == 0 || array_size == 0 || threads_num == 0) {
     printf("Usage: %s --threads_num \"num\" --array_size \"num\" --seed \"num\" \n",
            argv[0]);
     return 1;
   }
 
   int *array = malloc(sizeof(int) * array_size);
-  GenerateArray(array, array_size, seed);
+  //GenerateArray
+  srand(seed);
+  for (int i = 0; i < array_size; i++)
+    array[i] = rand();
+
+  pthread_t threads[threads_num];
 
   struct timeval start_time;
   gettimeofday(&start_time, NULL);
 
-  pthread_t threads[threads_num];
-
   struct SumArgs args[threads_num];
-
   for (int i = 0; i < threads_num; i++){
     args[i].array = array;
   }
-
-  //let threads_num be 3 and arr size is 20
-  //part size be 6
-  //fill parts with 0 6 12 20
-  int arr_part_size = array_size/threads_num;
   args[0].begin = 0;
-  args[threads_num-1].end = array_size;
   for(int i = 0; i < threads_num - 1; i++){
-    args[i].end = args[i].begin + arr_part_size;
-    if (i+1 < threads_num){
-      args[i+1].begin = args[i].end;
-    }
+    args[i].end = args[i].begin + array_size/threads_num;
+    args[i+1].begin = args[i].end;
   }
+  args[threads_num-1].end = array_size;
 
   for (uint32_t i = 0; i < threads_num; i++){
     if (pthread_create(&threads[i], NULL, ThreadSum, (void *)&args[i]))
@@ -139,18 +141,30 @@ int main(int argc, char **argv) {
   for (uint32_t i = 0; i < threads_num; i++) {
     int sum = 0;
     pthread_join(threads[i], (void **)&sum);
-    printf("Part of summ is: %d\n", sum);
     total_sum += sum;
   }
-
-  free(array);
 
   struct timeval finish_time;
   gettimeofday(&finish_time, NULL);
   double elapsed_time = (finish_time.tv_sec - start_time.tv_sec) * 1000.0;
   elapsed_time += (finish_time.tv_usec - start_time.tv_usec) / 1000.0;
-  printf("Elapsed time: %fms\n", elapsed_time);
+  printf("Elapsed time parralel: %fms\n", elapsed_time);
 
-  printf("Total: %d\n", total_sum);
+  printf("Total paralell: %d\n", total_sum);
+
+  struct timeval start_time1;
+  gettimeofday(&start_time1, NULL);
+  total_sum =0;
+  for(int i=0; i< array_size; i++)
+    total_sum += array[i];
+
+  struct timeval finish_time1;
+  gettimeofday(&finish_time1, NULL);
+  double elapsed_time1 = (finish_time1.tv_sec - start_time1.tv_sec) * 1000.0;
+  elapsed_time1 += (finish_time1.tv_usec - start_time1.tv_usec) / 1000.0;
+  printf("Elapsed time brut: %fms\n", elapsed_time1);
+
+  printf("Total paralell: %d\n", total_sum);
+  free(array);
   return 0;
 }
