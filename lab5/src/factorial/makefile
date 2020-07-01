@@ -1,15 +1,13 @@
 CC=gcc
 CFLAGS=-I. -pthread
 
-remake: clean all
+all : factorial	
 
-all : mutex
+factorial : factorial.o
+	$(CC) -o factorial factorial.o $(CFLAGS)
 
-mutex : mutex.o
-	$(CC) -o mutex mutex.o $(CFLAGS)
-
-mutex.o : mutex.c
-	$(CC) -o mutex.o -c mutex.c $(CFLAGS)
+factorial.o : factorial.c
+	$(CC) -o factorial.o -c factorial.c $(CFLAGS)
 
 clean :
-	rm mutex.o
+	rm factorial.o

@@ -9,36 +9,28 @@
 #include <stdbool.h>
 #include <unistd.h>
 
-typedef unsigned long long ull;
-
 pthread_mutex_t mut = PTHREAD_MUTEX_INITIALIZER;
-int mod = -1;
-ull total_fact_global = 1;
+ int mod = -1;
+ unsigned long long total_fact_global = 1;
 
 struct FactArgs {
   int begin_num;
   int end_num;
 };
 
-ull Fact(const struct FactArgs *arg) {
-  ull calk = 1;
-  for(int i = arg->begin_num; i < arg->end_num; i++){
-    calk *= (i + 1) % mod;
-    //printf("From %d %d: %lld\n", arg->begin_num, arg->end_num, calk);
-  }
-  return calk;
-}
-
 void *ThreadFact(void *arg) {
+
   struct FactArgs *fact_arg = (struct FactArgs *)arg;
 
-  ull fact = Fact(fact_arg);
+  unsigned long long fact = 1;
+  for(int i = fact_arg->begin_num; i < fact_arg->end_num; i++){
+    fact *= (i + 1);
+    fact %= mod;
+  }
 
   pthread_mutex_lock(&mut);
   total_fact_global *= fact;
   pthread_mutex_unlock(&mut);
-
-  //return (void *)Fact(fact_arg);
 }
 
 int main(int argc, char **argv) {
@@ -64,12 +56,27 @@ int main(int argc, char **argv) {
         {
           case 0:
             k = atoi(optarg);
+            if(k <= 0)
+            {
+              printf("number should be positive");
+              return 1;
+            }
             break;
           case 1:
             pnum = atoi(optarg);
+            if(pnum <= 0)
+            {
+              printf("pnum should be positive");
+              return 1;
+            }
             break;
           case 2:
             mod = atoi(optarg);
+            if(mod <= 0)
+            {
+              printf("mod should be positive");
+              return 1;
+            }
             break;
           defalut:
             printf("Index %d is out of options\n", option_index);
@@ -92,21 +99,16 @@ int main(int argc, char **argv) {
   }
 
   pthread_t threads[pnum];
-  //let pnum be 3 and k be 20
-  //part size be 6
-  //fill parts with 0 6 12 20
+  
   struct FactArgs args[pnum];
-  int part_size = k/pnum;
+  
   args[0].begin_num = 0;
-  args[pnum-1].end_num = k;
   for(int i = 0; i < pnum - 1; i++)
   {
-    args[i].end_num = args[i].begin_num + part_size;
-    if (i+1 < pnum)
-    {
-      args[i+1].begin_num = args[i].end_num;
-    }
+    args[i].end_num = args[i].begin_num + k/pnum;
+    args[i+1].begin_num = args[i].end_num;
   }
+  args[pnum-1].end_num = k;
 
   for (int i = 0; i < pnum; i++){
     if (pthread_create(&threads[i], NULL, ThreadFact, (void *)&args[i]))
@@ -116,19 +118,11 @@ int main(int argc, char **argv) {
     }
   }
 
-  ull total_fact = 1;
   for (int i = 0; i < pnum; i++) {
-    //ull fact = 0;
     pthread_join(threads[i], 0);
-    //printf("Part of factorial from %d to %d is: %lld\n",
-    //        args[i].begin_num, args[i].end_num, fact);
-    //total_fact *= fact;
-    //printf("Now total factorial is: %lld\n", total_fact);
   }
-  //total_fact %= mod;
   total_fact_global %= mod;
 
-  //printf("Total factorial: %lld\n", total_fact);
   printf("Total factorial by mutex: %lld\n", total_fact_global);
   return 0;
 }

@@ -1,13 +1,13 @@
 CC=gcc
 CFLAGS=-I. -pthread
 
-all : mutex
+all : deadlock
 
-mutex : mutex.o
-	$(CC) -o mutex mutex.o $(CFLAGS)
+deadlock : deadlock.o
+	$(CC) -o deadlock deadlock.o $(CFLAGS)
 
-mutex.o : mutex.c
-	$(CC) -o mutex.o -c mutex.c $(CFLAGS)
+deadlock.o : deadlock.c
+	$(CC) -o deadlock.o -c deadlock.c $(CFLAGS)
 
 clean :
-	rm mutex.o
+	rm deadlock.o
